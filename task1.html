@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Quiz App</title>
+  <style>
+    body {
+      background-color: beige;
+      font-family: Arial, sans-serif;
+      text-align: center;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+    }
+    .quiz-container {
+      background-color: #000080;
+      color: white;
+      max-width: 800px;
+      height: 400px;
+      width: 90%;
+      padding: 20px;
+      border: 1px solid #ccc;
+      border-radius: 10px;
+      box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
+      position: relative;
+    }
+    .options-container {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 50px;
+      justify-content: center;
+      margin: 70px auto;
+      max-width: 500px;
+    }
+    .option {
+      padding: 10px;
+      cursor: pointer;
+      background-color: #f4f4f4;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+      width: 100%;
+      text-align: center;
+      color: black;
+    }
+    .option:disabled {
+      cursor: default;
+    }
+    .correct {
+      background-color: #d4edda;
+    }
+    .incorrect {
+      background-color: #f8d7da;
+    }
+    /* Navigation buttons at the bottom corners */
+    .nav-button {
+      position: absolute;
+      bottom: 20px;
+      padding: 10px 20px;
+      background-color: white;
+      color: #000080;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    #prev {
+      left: 20px;
+    }
+    #next {
+      right: 20px;
+    }
+    /* Hide disabled nav buttons */
+    .nav-button:disabled {
+      opacity: 0.5;
+      cursor: default;
+    }
+  </style>
+</head>
+<body>
+  <div class="quiz-container">
+    <h2 id="question"></h2>
+    <div id="options" class="options-container"></div>
+    <p id="feedback"></p>
+    <p id="score"></p>
+    <!-- Navigation Buttons -->
+    <button id="prev" class="nav-button">Previous</button>
+    <button id="next" class="nav-button">Next</button>
+  </div>
+
+  <script>
+    // Quiz questions array
+    var questions = [
+      { question: "What is the capital of France?", options: ["Berlin", "Madrid", "Paris", "Rome"], answer: "Paris" },
+      { question: "Which language is used for web development?", options: ["Python", "Java", "C++", "JavaScript"], answer: "JavaScript" },
+      { question: "What is 5 + 3?", options: ["5", "8", "10", "15"], answer: "8" }
+    ];
+
+    // To keep track of the user’s answers (null if not answered)
+    var userAnswers = Array(questions.length).fill(null);
+    var currentQuestionIndex = 0;
+
+    // Returns the updated score based on correct answers
+    function getScore() {
+      var score = 0;
+      questions.forEach(function(q, i) {
+        if (userAnswers[i] === q.answer) {
+          score++;
+        }
+      });
+      return score;
+    }
+
+    // Load current question and options.
+    function loadQuestion() {
+      // Clear any feedback message.
+      document.getElementById("feedback").innerText = "";
+
+      var q = questions[currentQuestionIndex];
+      document.getElementById("question").innerText = q.question;
+
+      var optionsContainer = document.getElementById("options");
+      optionsContainer.innerHTML = "";
+
+      // Create buttons for each option.
+      q.options.forEach(function(option) {
+        var btn = document.createElement("button");
+        btn.innerText = option;
+        btn.classList.add("option");
+        btn.style.pointerEvents = "auto";
+        // If this question has already been answered, lock the selection
+        if (userAnswers[currentQuestionIndex] !== null) {
+          btn.disabled = true;
+          if (option === q.answer) {
+            btn.classList.add("correct");
+          }
+          if (option === userAnswers[currentQuestionIndex] && userAnswers[currentQuestionIndex] !== q.answer) {
+            btn.classList.add("incorrect");
+          }
+        } else {
+          btn.onclick = function() {
+            checkAnswer(option, btn);
+          };
+        }
+        optionsContainer.appendChild(btn);
+      });
+
+      // If the question is answered, show the correct answer feedback.
+      if (userAnswers[currentQuestionIndex] !== null) {
+        document.getElementById("feedback").innerText = "Correct answer: " + q.answer;
+      }
+
+      // Update nav buttons: disable "Previous" on the first question.
+      document.getElementById("prev").disabled = currentQuestionIndex === 0;
+
+      // For the Next button, if we're on the last question and it's answered, change text to "Finish"
+      var nextBtn = document.getElementById("next");
+      if (currentQuestionIndex === questions.length - 1) {
+        nextBtn.innerText = "Finish";
+      } else {
+        nextBtn.innerText = "Next";
+      }
+    }
+
+    // Check the selected answer and provide feedback.
+    function checkAnswer(selected, button) {
+      // Prevent re-answering if already answered.
+      if (userAnswers[currentQuestionIndex] !== null) {
+        return;
+      }
+
+      var correctAnswer = questions[currentQuestionIndex].answer;
+      userAnswers[currentQuestionIndex] = selected; // Save user's selection
+
+      if (selected === correctAnswer) {
+        button.classList.add("correct");
+      } else {
+        button.classList.add("incorrect");
+      }
+      document.getElementById("feedback").innerText = "Correct answer: " + correctAnswer;
+
+      // Update score display if desired (or can be shown at the end)
+      document.getElementById("score").innerText = "Current Score: " + getScore();
+      
+      // Disable all option buttons for this question.
+      var allOptions = document.querySelectorAll("#options .option");
+      allOptions.forEach(function(btn) {
+        btn.disabled = true;
+      });
+    }
+
+    // Event listener for the Previous button.
+    document.getElementById("prev").addEventListener("click", function() {
+      if (currentQuestionIndex > 0) {
+        currentQuestionIndex--;
+        loadQuestion();
+      }
+    });
+
+    // Event listener for the Next button.
+    document.getElementById("next").addEventListener("click", function() {
+      // If on the last question and it is answered, then finish the quiz.
+      if (currentQuestionIndex === questions.length - 1) {
+        if (userAnswers[currentQuestionIndex] === null) {
+          alert("Please answer the question before finishing the quiz.");
+          return;
+        }
+        // Show final score and disable navigation.
+        document.getElementById("question").innerText = "Quiz Completed!";
+        document.getElementById("options").innerHTML = "";
+        document.getElementById("feedback").innerText = "";
+        document.getElementById("score").innerText = "Final Score: " + getScore() + " / " + questions.length;
+        // Disable nav buttons.
+        document.getElementById("prev").disabled = true;
+        document.getElementById("next").disabled = true;
+      } else {
+        // For non-last questions, if the question is not answered yet, alert the user.
+        if (userAnswers[currentQuestionIndex] === null) {
+          alert("Please select an answer before proceeding to the next question.");
+          return;
+        }
+        currentQuestionIndex++;
+        loadQuestion();
+      }
+    });
+
+    // Load the first question on page load.
+    loadQuestion();
+  </script>
+</body>
+</html>
